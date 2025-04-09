@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draft SensaCup</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .player-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .player-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            background-color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .player-info {
+            flex: 1;
+        }
+        .stats {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 3px;
+        }
+        .captain-badge {
+            background-color: #f39c12;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .next-btn {
+            background-color: #27ae60;
+        }
+        .next-btn:hover {
+            background-color: #219653;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cadastro de Jogadores</h1>
+    
+    <div class="section">
+        <h2>Adicionar Novo Jogador</h2>
+        <form id="playerForm">
+            <div class="form-group">
+                <label for="nick">Nick:</label>
+                <input type="text" id="nick" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="lvl_gc">Nível GC (1-20):</label>
+                <input type="number" id="lvl_gc" min="1" max="20" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="pontos_mm">Pontos MM:</label>
+                <input type="number" id="pontos_mm" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="is_captain"> Este jogador é capitão
+                </label>
+            </div>
+            
+            <button type="submit">Adicionar Jogador</button>
+        </form>
+    </div>
+    
+    <div class="section">
+        <h2>Jogadores Cadastrados</h2>
+        <ul id="playersList" class="player-list">
+            <li>Nenhum jogador cadastrado ainda</li>
+        </ul>
+    </div>
+    
+    <div class="actions">
+        <button onclick="clearAll()">Limpar Todos</button>
+        <button class="next-btn" onclick="goToDraft()">Ir para o Draft</button>
+    </div>
+
+    <script>
+        // Carregar jogadores do localStorage
+        let players = JSON.parse(localStorage.getItem('csgoPlayers')) || [];
+        
+        // Elementos do DOM
+        const playerForm = document.getElementById('playerForm');
+        const playersList = document.getElementById('playersList');
+        
+        // Renderizar lista de jogadores
+        function renderPlayers() {
+            if (players.length === 0) {
+                playersList.innerHTML = '<li>Nenhum jogador cadastrado ainda</li>';
+                return;
+            }
+            
+            playersList.innerHTML = '';
+            
+            players.forEach((player, index) => {
+                const li = document.createElement('li');
+                li.className = 'player-item';
+                li.innerHTML = `
+                    <div class="player-info">
+                        <div>
+                            ${player.nick}
+                            ${player.is_captain ? '<span class="captain-badge">Capitão</span>' : ''}
+                        </div>
+                        <div class="stats">GC: ${player.lvl_gc} | MM: ${player.pontos_mm} | Ordem: ${index + 1}</div>
+                    </div>
+                    <button onclick="removePlayer(${index})">Remover</button>
+                `;
+                playersList.appendChild(li);
+            });
+        }
+        
+        // Adicionar jogador
+        playerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const nick = document.getElementById('nick').value.trim();
+            const lvl_gc = parseInt(document.getElementById('lvl_gc').value);
+            const pontos_mm = parseInt(document.getElementById('pontos_mm').value);
+            const is_captain = document.getElementById('is_captain').checked;
+            
+            if (!nick) {
+                alert('Por favor, insira um nick para o jogador');
+                return;
+            }
+            
+            const player = {
+                id: Date.now().toString(),
+                nick,
+                lvl_gc,
+                pontos_mm,
+                ordem: players.length + 1,
+                is_captain,
+                selected: false
+            };
+            
+            players.push(player);
+            savePlayers();
+            playerForm.reset();
+            renderPlayers();
+        });
+        
+        // Remover jogador
+        function removePlayer(index) {
+            players.splice(index, 1);
+            savePlayers();
+            renderPlayers();
+        }
+        
+        // Limpar todos os jogadores
+        function clearAll() {
+            if (confirm('Tem certeza que deseja remover TODOS os jogadores?')) {
+                players = [];
+                savePlayers();
+                renderPlayers();
+            }
+        }
+        
+        // Salvar jogadores no localStorage
+        function savePlayers() {
+            localStorage.setItem('csgoPlayers', JSON.stringify(players));
+        }
+        
+        // Ir para a página de draft
+        function goToDraft() {
+            if (players.length < 5) {
+                alert('Você precisa cadastrar pelo menos 5 jogadores para começar o draft');
+                return;
+            }
+            
+            // Verificar se tem pelo menos 1 capitão
+            const captains = players.filter(p => p.is_captain);
+            if (captains.length === 0) {
+                alert('Você precisa marcar pelo menos 1 jogador como capitão');
+                return;
+            }
+            
+            window.location.href = 'draft.html';
+        }
+        
+        // Inicializar
+        renderPlayers();
+    </script>
+</body>
+</html>
