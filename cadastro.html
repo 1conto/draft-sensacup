@@ -222,23 +222,24 @@
         
         // Salvar jogadores no localStorage
         function savePlayers() {
-            localStorage.setItem('csgoPlayers', JSON.stringify(players));
+            // Limpa o estado anterior do draft quando novos jogadores são salvos
+            localStorage.removeItem('csgoDraftState');
+            localStorage.setItem('csgoPlayers', JSON.stringify({
+                players: players,
+                lastUpdate: new Date().getTime()  // Adiciona timestamp para controle
+            }));
         }
-        
+
         // Ir para a página de draft
         function goToDraft() {
-            if (players.length < 5) {
-                alert('Você precisa cadastrar pelo menos 5 jogadores para começar o draft');
-                return;
-            }
-            
-            // Verificar se tem pelo menos 1 capitão
             const captains = players.filter(p => p.is_captain);
             if (captains.length === 0) {
                 alert('Você precisa marcar pelo menos 1 jogador como capitão');
                 return;
             }
             
+            // Força uma nova inicialização no draft
+            localStorage.removeItem('csgoDraftState');
             window.location.href = 'draft.html';
         }
         
