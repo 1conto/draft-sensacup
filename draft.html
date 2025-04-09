@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draft de Times - CS:GO</title>
+    <title>Draft SensaCup</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -116,7 +116,7 @@
     </style>
 </head>
 <body>
-    <h1>Draft de Times - CS:GO</h1>
+    <h1>Draft SensaCup</h1>
     
     <div class="container">
         <div class="column">
@@ -138,8 +138,10 @@
         </div>
     </div>
     
-    <div class="section">
-        <button class="back-btn" onclick="window.location.href='cadastro.html'">Voltar para Cadastro</button>
+    <div class="section" style="text-align: center; margin-top: 20px;">
+        <button class="action-btn" onclick="window.location.href='cadastro.html'">
+            Voltar para Cadastro
+        </button>
     </div>
 
     <script>
@@ -151,23 +153,37 @@
         
         // Criar times com os capitães
         function initializeTeams() {
+            // Limpa times existentes
             teams = {};
-            const captains = players.filter(p => p.is_captain);
             
+            // Filtra apenas capitães não selecionados
+            const captains = players.filter(p => p.is_captain && !p.selected);
+            
+            // Se não encontrou capitães no localStorage, verifica nos jogadores
+            if (captains.length === 0) {
+                players.forEach(player => {
+                    if (player.is_captain) {
+                        player.selected = false;  // Reseta o status
+                        captains.push(player);
+                    }
+                });
+            }
+            
+            // Cria os times
             captains.forEach(captain => {
-                teams[captain.nick] = {
-                    name: captain.nick,
-                    players: [captain],
-                    captain: captain
-                };
-                captain.selected = true;
+                if (!teams[captain.nick]) {
+                    teams[captain.nick] = {
+                        name: captain.nick,
+                        players: [captain],
+                        captain: captain
+                    };
+                    captain.selected = true;
+                }
             });
             
-            // Ordenar jogadores por Pontos MM (decrescente) e Nível GC (decrescente)
+            // Ordena jogadores por Pontos MM (decrescente) e Nível GC (decrescente)
             players.sort((a, b) => {
-                if (b.pontos_mm !== a.pontos_mm) {
-                    return b.pontos_mm - a.pontos_mm;
-                }
+                if (b.pontos_mm !== a.pontos_mm) return b.pontos_mm - a.pontos_mm;
                 return b.lvl_gc - a.lvl_gc;
             });
         }
@@ -315,19 +331,39 @@
         
         // Carregar estado do draft
         function loadDraftState() {
+            const savedData = JSON.parse(localStorage.getItem('csgoPlayers'));
             const draftState = JSON.parse(localStorage.getItem('csgoDraftState'));
+            
+            // Se houver dados salvos, carrega os jogadores
+            if (savedData && savedData.players) {
+                players = savedData.players;
+            }
+            
+            // Se houver estado de draft, carrega os times
             if (draftState) {
-                players.forEach(player => {
-                    const savedPlayer = draftState.players.find(p => p.id === player.id);
-                    if (savedPlayer) {
-                        player.selected = savedPlayer.selected;
-                    }
-                });
-                
                 teams = draftState.teams;
+                
+                // Sincroniza o estado selected dos jogadores
+                players.forEach(player => {
+                    const isInAnyTeam = Object.values(teams).some(team => 
+                        team.players.some(p => p.id === player.id)
+                    );
+                    player.selected = isInAnyTeam;
+                });
             }
         }
-        
+        function resetDraft() {
+            if (confirm('Isso vai resetar TODOS os times. Continuar?')) {
+                players.forEach(player => {
+                    player.selected = false;
+                });
+                teams = {};
+                saveDraftState();
+                renderPlayers();
+                renderTeams();
+            }
+        }
+                
         // Inicializar
         initializeTeams();
         loadDraftState();
